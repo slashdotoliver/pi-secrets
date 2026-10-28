@@ -1,14 +1,14 @@
-import type {ExtensionAPI} from "@earendil-works/pi-coding-agent";
+import type {ExtensionAPI, ExtensionContext, SessionStartEvent} from "@earendil-works/pi-coding-agent";
 import {readConfig} from "./config/parser.js";
 import {hasSecretTool, SECRET_BIN} from "./secret-tool.js"
 import {SecretsConfig} from "./config/models.js";
 import {State} from "./state.js";
+import {registerCommands} from "./commands.js";
 
-const EXTENSION_NAME = "pi-secrets";
+export const EXTENSION_NAME = "pi-secrets";
 
-
-function registerLoadEnvironmentVariables(pi: ExtensionAPI, config: SecretsConfig, appState: State) {
-  pi.on("session_start", async (_event, ctx) => {
+export function loadVariables(appState: State, config: SecretsConfig) {
+  return async (_event: SessionStartEvent, ctx: ExtensionContext) => {
     const secretsLoadedCount = appState.loadSecrets(config, (msg) => {
       ctx.ui.notify(`[${EXTENSION_NAME}] ${msg}`, "error");
     });
@@ -21,7 +21,11 @@ function registerLoadEnvironmentVariables(pi: ExtensionAPI, config: SecretsConfi
     } else {
       ctx.ui.setStatus(EXTENSION_NAME, `${EXTENSION_NAME}: no mappings`);
     }
-  });
+  };
+}
+
+function registerLoadEnvironmentVariables(pi: ExtensionAPI, config: SecretsConfig, appState: State) {
+  pi.on("session_start", loadVariables(appState, config));
   pi.on("session_shutdown", async (_event, _ctx) => {
     appState.unloadSecrets();
   });
@@ -47,4 +51,5 @@ export default function (pi: ExtensionAPI) {
   // TODO: register tool output redaction
 
   registerLoadEnvironmentVariables(pi, config, appState);
+  registerCommands(pi, appState);
 }
