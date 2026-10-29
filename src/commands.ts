@@ -11,9 +11,9 @@ const COMMAND_NAMES = {
 function buildReloadCommand(state: ExtensionState) {
   return {
     description: "Reload all configured secrets from the system keyring",
-    handler: async (_args: string, _ctx: ExtensionCommandContext) => {
-      state.unloadSecrets();
-      loadVariables(state, readConfig());
+    handler: async (_args: string, ctx: ExtensionCommandContext) => {
+      state.unloadSecretsAndVariables();
+      await loadVariables(state, readConfig())(undefined, ctx);
     },
   };
 }
@@ -22,23 +22,30 @@ function buildStatusCommand(state: ExtensionState) {
   return {
     description: "Show loaded secrets and status with values redacted",
     handler: async (_args: string, ctx: ExtensionCommandContext) => {
-      if (state.loadedPaths.size === 0) {
+      let loadedPaths = state.getLoadedPaths();
+      if (loadedPaths.size === 0) {
         ctx.ui.notify(`[${EXTENSION_NAME}]: no secrets loaded.`, "info");
         return;
       }
+      const notifyContent: string[] = [];
+      {
+        const lines: string[] = [];
+        for (const [secretName, envVar] of loadedPaths) {
+          const secret = state.getLoadedSecrets().get(envVar) ?? "";
+          const preview = secret.length > 8 ? `${secret.slice(0, 4)}...${secret.slice(-4)}` : "(short)";
 
-      const lines: string[] = [];
-      for (const [secretName, envVar] of state.loadedPaths) {
-        const secret = state.loadedSecrets.get(envVar) ?? "";
-        const preview =
-          secret.length > 8
-            ? `${secret.slice(0, 4)}...${secret.slice(-4)}`
-            : "(short)";
-
-        lines.push(`  secret-tool lookup name ${secretName} → $${envVar}=${preview}`);
+          lines.push(`  secret-tool lookup name ${secretName} → $${envVar}=${preview}`);
+        }
+        notifyContent.push(`Loaded secrets:\n${lines.join("\n")}`);
       }
-
-      ctx.ui.notify(`Loaded secrets:\n${lines.join("\n")}`, "info");
+      {
+        const lines: string[] = [];
+        for (const [envVar, value] of state.getLoadedNormalEnvVars()) {
+          lines.push(`  $${envVar}=${value}`);
+        }
+        notifyContent.push(`Loaded environment variables:\n${lines.join("\n")}`);
+      }
+      ctx.ui.notify(notifyContent.join("\n"), "info")
     },
   };
 }
@@ -105,7 +112,7 @@ function buildHelpCommand() {
         "Secrets extension commands:",
         `  /${COMMAND_NAMES.link} <ENV_VAR> <SECRET_NAME> [global|local] - map an env var to a keyring secret`,
         `  /${COMMAND_NAMES.reload} - re-read all secrets from system keyring`,
-        `  /${COMMAND_NAMES.status} - display currently loaded keys (redacted)`,
+        `  /${COMMAND_NAMES.status} - display currently loaded keys`,
         `  /${COMMAND_NAMES.help} - show this help message`,
         "",
         "Configure mappings in settings.json (~/.pi/agent/settings.json or ./.pi/settings.json):",

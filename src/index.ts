@@ -1,4 +1,4 @@
-import type {ExtensionAPI, ExtensionContext, SessionStartEvent} from "@earendil-works/pi-coding-agent";
+import type {ExtensionAPI, ExtensionContext} from "@earendil-works/pi-coding-agent";
 import {readConfig} from "./config/parser.js";
 import {hasSecretTool, SECRET_BIN} from "./secret-tool.js"
 import {ExtensionConfiguration} from "./config/models.js";
@@ -8,8 +8,8 @@ import {registerCommands} from "./commands.js";
 export const EXTENSION_NAME = "pi-secrets";
 
 export function loadVariables(appState: ExtensionState, config: ExtensionConfiguration) {
-  return async (_event: SessionStartEvent, ctx: ExtensionContext) => {
-    const secretsLoadedCount = appState.loadSecrets(config, (msg: string) => {
+  return async (_event: any, ctx: ExtensionContext) => {
+    const secretsLoadedCount = appState.loadSecretsAndVariables(config, (msg: string) => {
       ctx.ui.notify(`[${EXTENSION_NAME}] ${msg}`, "error");
     });
 
@@ -25,11 +25,9 @@ export function loadVariables(appState: ExtensionState, config: ExtensionConfigu
 }
 
 function registerLoadEnvironmentVariables(pi: ExtensionAPI, config: ExtensionConfiguration, appState: ExtensionState) {
-  pi.on("session_start", async (_event, _ctx) => {
-    loadVariables(appState, config);
-  });
+  pi.on("session_start", loadVariables(appState, config));
   pi.on("session_shutdown", async (_event, _ctx) => {
-    appState.unloadSecrets();
+    appState.unloadSecretsAndVariables();
   });
 }
 

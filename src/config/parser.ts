@@ -1,6 +1,6 @@
 import {dirname, resolve} from "node:path";
 import {homedir} from "node:os";
-import {EnvironmentVariableName, SecretName, ExtensionConfiguration} from "./models.js";
+import {EnvironmentVariableName, ExtensionConfiguration, SecretName} from "./models.js";
 import {existsSync, mkdirSync, readFileSync, writeFileSync} from "node:fs";
 
 const GLOBAL_SETTINGS_PATH = resolve(homedir(), ".pi/agent/settings.json");
@@ -13,16 +13,17 @@ export function readConfig(): ExtensionConfiguration {
   const globalConfig = parseSettings(GLOBAL_SETTINGS_PATH);
   const localConfig = parseSettings(LOCAL_SETTINGS_PATH);
 
-  const mergedMappings: Record<EnvironmentVariableName, SecretName> = {
-    ...(globalConfig?.secrets ?? {}), ...(localConfig?.secrets ?? {}),
-  };
-
   return {
-    secrets: mergedMappings,
-  };
+    secrets: {
+      ...(globalConfig?.secrets ?? {}), ...(localConfig?.secrets ?? {})
+    },
+    env: {
+      ...(globalConfig?.env ?? {}), ...(localConfig?.env ?? {})
+    }
+  }
 }
 
-function parseSettings(filePath: string): ExtensionConfiguration | null {
+function parseSettings(filePath: string): Partial<ExtensionConfiguration> | null {
   try {
     if (!existsSync(filePath)) return null;
     const content = readFileSync(filePath, "utf-8");
@@ -36,15 +37,13 @@ export function addSecretMapping(envVar: EnvironmentVariableName, secretName: Se
   const targetPath = scope === "global" ? GLOBAL_SETTINGS_PATH : LOCAL_SETTINGS_PATH;
 
   const dir = dirname(targetPath);
-  if (!existsSync(dir)) {
-    mkdirSync(dir, {recursive: true});
-  }
+  if (!existsSync(dir)) mkdirSync(dir, {recursive: true});
 
   let fullConfig: SettingsData = {};
   if (existsSync(targetPath)) {
     try {
       const raw = readFileSync(targetPath, "utf-8").trim();
-      fullConfig = raw ? (JSON.parse(raw) as SettingsData) : { secrets: {} };
+      fullConfig = raw ? (JSON.parse(raw) as SettingsData) : {secrets: {}};
     } catch (err) {
       throw new Error(`Failed to read ${targetPath}. Please ensure it contains valid JSON.`);
     }
