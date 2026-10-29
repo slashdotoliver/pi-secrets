@@ -1,19 +1,13 @@
-import {EnvironmentVariableName, PlaintextSecret, SecretName, SecretsConfig} from "./config/models.js";
+import {EnvironmentVariableName, ExtensionConfiguration, PlaintextSecret, SecretName} from "./config/models.js";
 import {keyringLookup} from "./secret-tool.js";
 
-export interface ExtensionState {
-  loadedSecrets: Map<EnvironmentVariableName, PlaintextSecret>;
-  loadedPaths: Map<SecretName, EnvironmentVariableName>;
-  originalEnv: Map<EnvironmentVariableName, string | undefined>;
-}
 
-
-export class State implements ExtensionState {
+export class ExtensionState {
   loadedPaths: Map<SecretName, EnvironmentVariableName> = new Map();
   loadedSecrets: Map<EnvironmentVariableName, PlaintextSecret> = new Map();
   originalEnv: Map<EnvironmentVariableName, string | undefined> = new Map();
 
-  public loadSecrets(config: SecretsConfig, onError: (msg: string) => void): number {
+  public loadSecrets(config: ExtensionConfiguration, onError: (msg: string) => void): number {
     for (const [envVar, _] of Object.entries(config.secrets)) {
       if (!this.originalEnv.has(envVar)) {
         this.originalEnv.set(envVar, process.env[envVar]);
@@ -27,6 +21,11 @@ export class State implements ExtensionState {
       if (this.addSecretToEnvironment(secretName, onError, envVar)) count++;
     }
     return count;
+  }
+
+  public unloadSecrets(): void {
+    this.clearSecrets();
+    this.originalEnv.clear();
   }
 
   private addSecretToEnvironment(secretName: string, onError: (msg: string) => void, envVar: string): boolean {
@@ -60,10 +59,5 @@ export class State implements ExtensionState {
     }
     this.loadedSecrets.clear();
     this.loadedPaths.clear();
-  }
-
-  public unloadSecrets(): void {
-    this.clearSecrets();
-    this.originalEnv.clear();
   }
 }

@@ -1,14 +1,14 @@
 import type {ExtensionAPI, ExtensionCommandContext} from "@earendil-works/pi-coding-agent";
 import {keyringStore, secretExists} from "./secret-tool.js";
 import {addSecretMapping, readConfig} from "./config/parser.js";
-import {State} from "./state.js";
+import {ExtensionState} from "./state.js";
 import {EXTENSION_NAME, loadVariables} from "./index.js";
 
 const COMMAND_NAMES = {
   reload: "secrets:reload", status: "secrets:status", help: "secrets:help", link: "secrets:link",
 };
 
-function buildReloadCommand(state: State) {
+function buildReloadCommand(state: ExtensionState) {
   return {
     description: "Reload all configured secrets from the system keyring",
     handler: async (_args: string, _ctx: ExtensionCommandContext) => {
@@ -18,7 +18,7 @@ function buildReloadCommand(state: State) {
   };
 }
 
-function buildStatusCommand(state: State) {
+function buildStatusCommand(state: ExtensionState) {
   return {
     description: "Show loaded secrets and status with values redacted",
     handler: async (_args: string, ctx: ExtensionCommandContext) => {
@@ -104,11 +104,11 @@ function buildHelpCommand() {
       const helpText = [
         "Secrets extension commands:",
         `  /${COMMAND_NAMES.link} <ENV_VAR> <SECRET_NAME> [global|local] - map an env var to a keyring secret`,
-        `  /${COMMAND_NAMES.reload} — re-read all secrets from system keyring`,
-        `  /${COMMAND_NAMES.status} — display currently loaded keys (redacted)`,
-        `  /${COMMAND_NAMES.help} — show this help message`,
+        `  /${COMMAND_NAMES.reload} - re-read all secrets from system keyring`,
+        `  /${COMMAND_NAMES.status} - display currently loaded keys (redacted)`,
+        `  /${COMMAND_NAMES.help} - show this help message`,
         "",
-        "Configure mappings in settings.json (~/.pi/agent/settings.json or .pi/settings.json):",
+        "Configure mappings in settings.json (~/.pi/agent/settings.json or ./.pi/settings.json):",
         '  "secrets": {',
         '    "OPENAI_API_KEY": "openai/personal_key"',
         "  }",
@@ -119,7 +119,7 @@ function buildHelpCommand() {
   };
 }
 
-export function registerCommands(pi: ExtensionAPI, state: State) {
+export function registerCommands(pi: ExtensionAPI, state: ExtensionState) {
   pi.registerCommand(COMMAND_NAMES.reload, buildReloadCommand(state));
   pi.registerCommand(COMMAND_NAMES.status, buildStatusCommand(state));
   pi.registerCommand(COMMAND_NAMES.link, buildLinkCommand());

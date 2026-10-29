@@ -1,15 +1,15 @@
 import {dirname, resolve} from "node:path";
 import {homedir} from "node:os";
-import {EnvironmentVariableName, SecretName, SecretsConfig} from "./models.js";
+import {EnvironmentVariableName, SecretName, ExtensionConfiguration} from "./models.js";
 import {existsSync, mkdirSync, readFileSync, writeFileSync} from "node:fs";
 
 const GLOBAL_SETTINGS_PATH = resolve(homedir(), ".pi/agent/settings.json");
 const LOCAL_SETTINGS_PATH = resolve(process.cwd(), ".pi/settings.json");
 
 type ConfigScope = "global" | "local";
-type SettingsData = Partial<SecretsConfig> & Record<string, unknown>;
+type SettingsData = Partial<ExtensionConfiguration> & Record<string, unknown>;
 
-export function readConfig(): SecretsConfig {
+export function readConfig(): ExtensionConfiguration {
   const globalConfig = parseSettings(GLOBAL_SETTINGS_PATH);
   const localConfig = parseSettings(LOCAL_SETTINGS_PATH);
 
@@ -22,11 +22,11 @@ export function readConfig(): SecretsConfig {
   };
 }
 
-function parseSettings(filePath: string): SecretsConfig | null {
+function parseSettings(filePath: string): ExtensionConfiguration | null {
   try {
     if (!existsSync(filePath)) return null;
     const content = readFileSync(filePath, "utf-8");
-    return JSON.parse(content) as SecretsConfig;
+    return JSON.parse(content) as ExtensionConfiguration;
   } catch {
     return null;
   }
