@@ -32,16 +32,16 @@ function buildStatusCommand(state: ExtensionState) {
         const lines: string[] = [];
         for (const [secretName, envVar] of loadedPaths) {
           const secret = state.getLoadedSecrets().get(envVar) ?? "";
-          const preview = secret.length > 8 ? `${secret.slice(0, 4)}...${secret.slice(-4)}` : "(short)";
+          const preview = secret.length > 8 ? `${secret.slice(0, 4)}...${secret.slice(-2)}` : "(short)";
 
-          lines.push(`  secret-tool lookup name ${secretName} → $${envVar}=${preview}`);
+          lines.push(`\t${envVar}=${preview} <- secret-tool lookup name ${secretName}`);
         }
-        notifyContent.push(`Loaded secrets:\n${lines.join("\n")}`);
+        notifyContent.push(`Loaded environment variables with secret-tool:\n${lines.join("\n")}`);
       }
       {
         const lines: string[] = [];
         for (const [envVar, value] of state.getLoadedNormalEnvVars()) {
-          lines.push(`  $${envVar}=${value}`);
+          lines.push(`\t${envVar}=${value}`);
         }
         notifyContent.push(`Loaded environment variables:\n${lines.join("\n")}`);
       }
